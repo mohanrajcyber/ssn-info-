@@ -20,6 +20,8 @@ try {
       </ErrorBoundary>
     </StrictMode>,
   )
+  window.__SSN_READY = true
 } catch (err) {
+  window.__SSN_READY = false
   rootEl.innerHTML = `<div style="padding:24px;font-family:sans-serif"><h1>Failed to start</h1><p>${String(err?.message || err)}</p><button onclick="location.reload()">Reload</button></div>`
 }

@@ -27,6 +27,9 @@ export class BillingDB extends Dexie {
 
 export const db = new BillingDB()
 
+/** True when IndexedDB is unavailable (common on locked-down phone browsers). */
+export let memoryMode = false
+
 const OLD_KEYS = {
   shop: 'srt_shop',
   customers: 'srt_customers',
@@ -54,21 +57,47 @@ function clearLegacy() {
 }
 
 export async function bootDatabase() {
-  await db.open()
+  try {
+    await Promise.race([
+      db.open(),
+      new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Database open timeout on this phone')), 6000)
+      }),
+    ])
 
-  const metaReady = await db.meta.get('boot')
-  if (!metaReady) {
-    await migrateFromLocalStorage()
-    await seedIfEmpty()
-    await db.meta.put({ key: 'boot', at: new Date().toISOString(), version: 2 })
+    const metaReady = await db.meta.get('boot')
+    if (!metaReady) {
+      await migrateFromLocalStorage()
+      await seedIfEmpty()
+      await db.meta.put({ key: 'boot', at: new Date().toISOString(), version: 2 })
+    }
+
+    await ensureV2Defaults()
+    await patchProductMrps()
+    await patchProductStock()
+    await patchShopName()
+
+    return hydrateSnapshot()
+  } catch (err) {
+    console.warn('IndexedDB unavailable — memory mode', err)
+    memoryMode = true
+    return memorySnapshot(err)
   }
+}
 
-  await ensureV2Defaults()
-  await patchProductMrps()
-  await patchProductStock()
-  await patchShopName()
-
-  return hydrateSnapshot()
+function memorySnapshot(err) {
+  return {
+    shop: { ...defaultShop },
+    shops: [{ ...defaultShop }],
+    customers: [...seedCustomers],
+    products: [...seedProducts],
+    estimates: [],
+    estimateCounter: 200,
+    invoiceCounter: 100,
+    prefs: { ...defaultPrefs },
+    memoryOnly: true,
+    memoryError: err?.message || String(err),
+  }
 }
 
 async function ensureV2Defaults() {
@@ -210,12 +239,15 @@ export async function hydrateSnapshot() {
 
 export async function dbSaveShop(shop) {
   const row = { ...defaultShop, ...shop, id: 'shop' }
+  if (memoryMode) return row
   await db.shop.put(row)
   await db.shops.put(row)
+  return row
 }
 
 export async function dbUpsertShopProfile(shop) {
   const row = { ...defaultShop, ...shop, id: shop.id || `shop_${Date.now()}` }
+  if (memoryMode) return row
   await db.shops.put(row)
   if (row.id === 'shop') await db.shop.put(row)
   return row
@@ -223,38 +255,52 @@ export async function dbUpsertShopProfile(shop) {
 
 export async function dbDeleteShopProfile(id) {
   if (id === 'shop') throw new Error('Cannot delete primary shop')
+  if (memoryMode) return
   await db.shops.delete(id)
 }
 
 export async function dbSavePrefs(prefs) {
-  await db.meta.put({ key: 'prefs', value: { ...defaultPrefs, ...prefs } })
+  const next = { ...defaultPrefs, ...prefs }
+  if (memoryMode) return next
+  await db.meta.put({ key: 'prefs', value: next })
+  return next
 }
 
 export async function dbUpsertCustomer(customer) {
+  if (memoryMode) return customer
   await db.customers.put(customer)
+  return customer
 }
 
 export async function dbDeleteCustomer(id) {
+  if (memoryMode) return
   await db.customers.delete(id)
 }
 
 export async function dbUpsertProduct(product) {
+  if (memoryMode) return product
   await db.products.put(product)
+  return product
 }
 
 export async function dbDeleteProduct(id) {
+  if (memoryMode) return
   await db.products.delete(id)
 }
 
 export async function dbUpsertEstimate(estimate) {
-  await db.estimates.put({
+  const row = {
     ...estimate,
     customerId: estimate.customer?.id || '',
     shopId: estimate.shopId || 'shop',
-  })
+  }
+  if (memoryMode) return row
+  await db.estimates.put(row)
+  return row
 }
 
 export async function dbDeleteEstimate(id) {
+  if (memoryMode) return
   await db.estimates.delete(id)
 }
 
@@ -262,6 +308,14 @@ export async function dbNextDocNo(shop, docType = 'estimate') {
   const key = docType === 'invoice' ? 'invoiceCounter' : 'estimateCounter'
   const prefix =
     docType === 'invoice' ? shop.invoicePrefix || 'INV' : shop.estimatePrefix || 'EST'
+  if (memoryMode) {
+    const next = docType === 'invoice' ? 101 : 201
+    return {
+      docNo: `${prefix}${shop.financialYear || ''}/${next}`,
+      counter: next,
+      key,
+    }
+  }
   return db.transaction('rw', db.meta, async () => {
     const row = (await db.meta.get(key)) || { key, value: docType === 'invoice' ? 100 : 200 }
     const next = (Number(row.value) || 0) + 1
@@ -276,6 +330,7 @@ export async function dbNextDocNo(shop, docType = 'estimate') {
 
 /** Deduct stock for invoice lines (once). Returns updated products. */
 export async function dbApplyStock(lines, { reverse = false } = {}) {
+  if (memoryMode) return []
   const factor = reverse ? 1 : -1
   const updated = []
   await db.transaction('rw', db.products, async () => {

@@ -31,6 +31,13 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       input: resolve(__dirname, 'index.vite.html'),
+      output: {
+        // Stable names so phone cache doesn't keep broken hashed filenames
+        entryFileNames: 'assets/app.js',
+        chunkFileNames: 'assets/[name].js',
+        assetFileNames: (info) =>
+          info.name && info.name.endsWith('.css') ? 'assets/app.css' : 'assets/[name][extname]',
+      },
     },
   },
 })

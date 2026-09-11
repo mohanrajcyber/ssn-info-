@@ -42,22 +42,10 @@ export function DataProvider({ children }) {
 
   useEffect(() => {
     let alive = true
-    const timeout = window.setTimeout(() => {
-      if (!alive) return
-      setStatus((s) => {
-        if (s === 'booting') {
-          setError('Phone database is slow or blocked. Chrome-la open pannunga, or Retry.')
-          return 'error'
-        }
-        return s
-      })
-    }, 12000)
-
     ;(async () => {
       try {
         const data = await bootDatabase()
         if (!alive) return
-        window.clearTimeout(timeout)
         setSnap(data)
         setStatus('ready')
         applyTheme(data.prefs?.theme)
@@ -68,14 +56,12 @@ export function DataProvider({ children }) {
       } catch (err) {
         console.error(err)
         if (!alive) return
-        window.clearTimeout(timeout)
         setError(err?.message || 'Database failed to open on this phone browser')
         setStatus('error')
       }
     })()
     return () => {
       alive = false
-      window.clearTimeout(timeout)
     }
   }, [])
 

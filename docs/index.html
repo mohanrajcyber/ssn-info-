@@ -10,27 +10,55 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>SSN INFO AND ENTERPRISES — Premium Billing</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Mono:wght@500;600&family=Manrope:wght@400;500;600;700;800&display=swap"
-      rel="stylesheet"
-    />
     <style>
-      #root:empty::before {
-        content: 'SSN Info loading…';
+      html, body { margin: 0; background: #e8eef2; }
+      #boot-fallback {
         display: grid;
         place-items: center;
         min-height: 100vh;
-        font-family: Manrope, system-ui, sans-serif;
-        color: #0b2a32;
+        padding: 24px;
+        font-family: system-ui, sans-serif;
+        text-align: center;
+        color: #12202a;
+      }
+      #boot-fallback h1 { font-size: 1.25rem; margin: 0 0 8px; }
+      #boot-fallback p { color: #5a6b76; margin: 0 0 16px; line-height: 1.4; }
+      #boot-fallback a, #boot-fallback button {
+        display: inline-block;
+        margin: 4px;
+        padding: 12px 16px;
+        border-radius: 10px;
+        border: 0;
+        background: #0d5c63;
+        color: #fff;
         font-weight: 700;
+        text-decoration: none;
+        font-size: 16px;
       }
     </style>
-    <script type="module" crossorigin src="/ssn-info-/assets/index.vite-FLP3cthl.js"></script>
-    <link rel="stylesheet" crossorigin href="/ssn-info-/assets/index-xPKQY3iL.css">
+    <script type="module"  src="./assets/app.js?v=5"></script>
+    <link rel="stylesheet"  href="./assets/app.css?v=5">
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="boot-fallback">
+        <div>
+          <h1>SSN INFO AND ENTERPRISES</h1>
+          <p id="boot-msg">Loading billing app…</p>
+          <button type="button" onclick="location.reload()">Reload</button>
+        </div>
+      </div>
+    </div>
+    <script>
+      setTimeout(function () {
+        if (!window.__SSN_READY) {
+          var msg = document.getElementById('boot-msg')
+          if (msg) {
+            msg.innerHTML =
+              'Phone browser block panrathu. <b>Chrome</b>-la open pannunga:<br/>https://mohanrajcyber.github.io/ssn-info-/#/'
+          }
+        }
+      }, 9000)
+    </script>
   </body>
 </html>

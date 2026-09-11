@@ -1,4 +1,4 @@
-import { NavLink, Route, Routes } from 'react-router-dom'
+import { Link, NavLink, Route, Routes } from 'react-router-dom'
 import { useState } from 'react'
 import { useData } from './data/DataContext'
 import { t } from './i18n'
@@ -81,12 +81,45 @@ function PinLock() {
 export default function App() {
   const { status, shop, shops, busy, prefs, unlocked, switchShop, lockNow } = useData()
   const lang = prefs?.language || 'en'
+  const [menuOpen, setMenuOpen] = useState(false)
 
   if (status !== 'ready') return <BootScreen />
   if (prefs?.pin && !unlocked) return <PinLock />
 
+  function closeMenu() {
+    setMenuOpen(false)
+  }
+
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${menuOpen ? 'menu-open' : ''}`}>
+      <header className="mobile-topbar no-print">
+        <button
+          type="button"
+          className="menu-toggle"
+          aria-label="Open menu"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((v) => !v)}
+        >
+          <span />
+          <span />
+          <span />
+        </button>
+        <div className="mobile-brand">
+          <strong>SSN Info</strong>
+          <small>{shop?.name || t(lang, 'appName')}</small>
+        </div>
+        <Link className="btn mobile-new" to="/estimates/new" onClick={closeMenu}>
+          + Bill
+        </Link>
+      </header>
+
+      <div
+        className="nav-backdrop no-print"
+        hidden={!menuOpen}
+        onClick={closeMenu}
+        aria-hidden="true"
+      />
+
       <aside className="sidebar no-print">
         <div className="brand">
           {shop?.logoDataUrl ? (
@@ -98,6 +131,9 @@ export default function App() {
             <strong>SSN Info</strong>
             <small>{t(lang, 'appName')}</small>
           </div>
+          <button type="button" className="menu-close" aria-label="Close menu" onClick={closeMenu}>
+            ×
+          </button>
         </div>
 
         <div className="side-shop">
@@ -119,7 +155,7 @@ export default function App() {
           )}
         </div>
 
-        <nav>
+        <nav onClick={closeMenu}>
           <NavLink to="/" end>
             {t(lang, 'dashboard')}
           </NavLink>

@@ -19,6 +19,7 @@ function BootScreen() {
         <div className="boot-card">
           <h1>Database error</h1>
           <p>{error}</p>
+          <p className="muted small">WhatsApp browser skip pannitu Chrome / Safari-la open pannunga.</p>
           <button type="button" className="btn" onClick={() => window.location.reload()}>
             Retry
           </button>

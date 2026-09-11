@@ -46,7 +46,11 @@ function readLegacy(key) {
 }
 
 function clearLegacy() {
-  Object.values(OLD_KEYS).forEach((k) => localStorage.removeItem(k))
+  try {
+    Object.values(OLD_KEYS).forEach((k) => localStorage.removeItem(k))
+  } catch {
+    /* private mode */
+  }
 }
 
 export async function bootDatabase() {

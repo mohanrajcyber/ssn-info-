@@ -18,6 +18,7 @@ import {
   dbUpsertShopProfile,
 } from './db'
 import { defaultPrefs, uid } from './seed'
+import { storageGet, storageRemove, storageSet } from '../utils/storage'
 
 const DataContext = createContext(null)
 
@@ -37,30 +38,44 @@ export function DataProvider({ children }) {
   const [error, setError] = useState('')
   const [snap, setSnap] = useState(emptySnap)
   const [busy, setBusy] = useState(false)
-  const [unlocked, setUnlocked] = useState(() => sessionStorage.getItem('srt_unlocked') === '1')
+  const [unlocked, setUnlocked] = useState(() => storageGet('session', 'srt_unlocked') === '1')
 
   useEffect(() => {
     let alive = true
+    const timeout = window.setTimeout(() => {
+      if (!alive) return
+      setStatus((s) => {
+        if (s === 'booting') {
+          setError('Phone database is slow or blocked. Chrome-la open pannunga, or Retry.')
+          return 'error'
+        }
+        return s
+      })
+    }, 12000)
+
     ;(async () => {
       try {
         const data = await bootDatabase()
         if (!alive) return
+        window.clearTimeout(timeout)
         setSnap(data)
         setStatus('ready')
         applyTheme(data.prefs?.theme)
         if (!data.prefs?.pin) {
           setUnlocked(true)
-          sessionStorage.setItem('srt_unlocked', '1')
+          storageSet('session', 'srt_unlocked', '1')
         }
       } catch (err) {
         console.error(err)
         if (!alive) return
-        setError(err?.message || 'Database failed to open')
+        window.clearTimeout(timeout)
+        setError(err?.message || 'Database failed to open on this phone browser')
         setStatus('error')
       }
     })()
     return () => {
       alive = false
+      window.clearTimeout(timeout)
     }
   }, [])
 
@@ -263,7 +278,7 @@ export function DataProvider({ children }) {
     (pin) => {
       if (!snap.prefs?.pin || String(pin) === String(snap.prefs.pin)) {
         setUnlocked(true)
-        sessionStorage.setItem('srt_unlocked', '1')
+        storageSet('session', 'srt_unlocked', '1')
         return true
       }
       return false
@@ -273,7 +288,7 @@ export function DataProvider({ children }) {
 
   const lockNow = useCallback(() => {
     setUnlocked(false)
-    sessionStorage.removeItem('srt_unlocked')
+    storageRemove('session', 'srt_unlocked')
   }, [])
 
   const value = useMemo(

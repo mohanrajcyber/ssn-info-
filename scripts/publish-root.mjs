@@ -12,10 +12,11 @@ if (!existsSync(docsIndex)) {
 }
 
 let html = readFileSync(docsIndex, 'utf8')
-// Prefer relative asset URLs — more reliable on some phone browsers / caches
+// Absolute /ssn-info-/ paths — phone often opens WITHOUT trailing slash;
+// relative ./assets then resolves to github.io/assets (404).
 html = html
-  .replaceAll('/ssn-info-/assets/app.js', './assets/app.js?v=5')
-  .replaceAll('/ssn-info-/assets/app.css', './assets/app.css?v=5')
+  .replaceAll('/ssn-info-/assets/app.js', '/ssn-info-/assets/app.js?v=6')
+  .replaceAll('/ssn-info-/assets/app.css', '/ssn-info-/assets/app.css?v=6')
   .replaceAll('crossorigin', '')
 
 writeFileSync(docsIndex, html)
@@ -27,4 +28,4 @@ cpSync(join(docs, 'assets'), assets, { recursive: true })
 copyFileSync(docsIndex, join(root, 'index.html'))
 copyFileSync(join(docs, '404.html'), join(root, '404.html'))
 writeFileSync(join(root, '.nojekyll'), '')
-console.log('Published docs/ → repo root (stable app.js + relative URLs)')
+console.log('Published docs/ → repo root (stable app.js + absolute /ssn-info-/ URLs)')

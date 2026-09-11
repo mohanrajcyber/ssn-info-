@@ -2,6 +2,15 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      // Phone often opens /ssn-info- (no slash) → assets 404. Force trailing slash + hash route.
+      (function () {
+        var p = location.pathname
+        if (p === '/ssn-info-') {
+          location.replace('/ssn-info-/' + location.search + (location.hash || '#/'))
+        }
+      })()
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#0b2a32" />
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
